@@ -1,0 +1,93 @@
+#!/bin/bash
+
+CTX=$(kubectl config current-context)
+NS=$(kubectl config view --minify -o jsonpath='{..namespace}')
+
+if [ -z $NS ]
+then 
+    NS="default"
+fi
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -n|--namespace)
+      NS=$2
+      shift # past argument
+      shift # past value
+      ;;
+    -c|--context)
+      CTX=$2
+      shift # past argument
+      shift # past value
+      ;;
+    -h|--help)
+      echo "Usage:"
+      echo "    kubectl everything [options]"
+      echo ""
+      echo "    The following options are available:"
+      echo "    -n, --namespace <value>: Sets the Namespace to query for all resources"
+      echo "    -c, --context <value>: Sets the Context to query for all resources"
+      echo "    -h, --help: Presents Usage details for this plugin"
+      echo ""
+      echo "    Example:"
+      echo "        # Presents all resources from the current context's 'applications' namespace"
+      echo "        kubectl everything -n applications "
+      echo ""
+      echo "        # Presents all resources from the 'dev' context's 'sandbox' namespace"
+      echo "        kubectl everything --context dev -namespace sandbox"
+      exit 0
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+list_resource() {
+    if [ ! -z "$1" ]
+    then
+        echo "$2:"
+        echo "$1"
+        echo ""
+    fi
+}
+
+PODS=$(kubectl --context $CTX --namespace $NS get pods 2> /dev/null)
+DEPLOYMENTS=$(kubectl --context $CTX --namespace $NS get deployments 2> /dev/null)
+SERVICES=$(kubectl --context $CTX --namespace $NS get services 2> /dev/null)
+CONFIGMAPS=$(kubectl --context $CTX --namespace $NS get configmaps 2> /dev/null)
+SECRETS=$(kubectl --context $CTX --namespace $NS get secrets 2> /dev/null)
+STATEFULSETS=$(kubectl --context $CTX --namespace $NS get statefulsets 2> /dev/null)
+DAEMONSETS=$(kubectl --context $CTX --namespace $NS get daemonsets 2> /dev/null)
+ROLES=$(kubectl --context $CTX --namespace $NS get roles 2> /dev/null)
+ROLEBINDINGS=$(kubectl --context $CTX --namespace $NS get rolebindings 2> /dev/null)
+CUSTOM=$(kubectl --context $CTX --namespace $NS get crds 2> /dev/null)
+EVENTS=$(kubectl --context $CTX --namespace $NS get events 2> /dev/null)
+PVOLUME=$(kubectl --context $CTX --namespace $NS get pv 2> /dev/null)
+PVOLUMECLAIMS=$(kubectl --context $CTX --namespace $NS get pvc 2> /dev/null)
+REPLICASETS=$(kubectl --context $CTX --namespace $NS get rs 2> /dev/null)
+
+echo "Listing Resources for $CTX: $NS"
+list_resource "$PODS" "PODS"
+list_resource "$DEPLOYMENTS" "DEPLOYMENTS"
+list_resource "$SERVICES" "SERVICES"
+list_resource "$CONFIGMAPS" "CONFIGMAPS"
+list_resource "$SECRETS" "SECRETS"
+list_resource "$PVOLUME" "PERSISTENTVOLUMES"
+list_resource "$PVOLUMECLAIMS" "PERSISTENTVOLUMECLAIMS"
+list_resource "$REPLICASETS" "REPLICASETS"
+list_resource "$STATEFULSETS" "STATEFULSETS"
+list_resource "$DAEMONSETS" "DAEMONSETS"
+list_resource "$ROLES" "ROLES"
+list_resource "$ROLEBINDINGS" "ROLEBINDINGS"
+list_resource "$CUSTOM" "CUSTOMRESOURCES"
+list_resource "$EVENTS" "EVENTS"
+
+exit 0
